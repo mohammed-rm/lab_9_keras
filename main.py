@@ -15,6 +15,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from pandas import read_csv
 
+
 # Question 1
 def read_close_data():
     close_list_2018 = []
@@ -25,7 +26,7 @@ def read_close_data():
     with open('data/DAT_XLSX_EURUSD_M1_2018.csv', 'r') as f:
         lines = f.readlines()
         for line in lines:
-            close_list_2018.append([float((line.split(';')[4]).replace(',', '.'))])
+            close_list_2018.append(float((line.split(';')[4]).replace(',', '.')))
             months_2018.append(line.split(';')[0])
 
     with open('data/DAT_XLSX_EURUSD_M1_2019.csv', 'r') as f:
@@ -33,11 +34,14 @@ def read_close_data():
         for line in lines:
             close_list_2019.append(float((line.split(';')[4]).replace(',', '.')))
             months_2019.append(line.split(';')[0])
+
     close_array_2018 = np.array(close_list_2018)
     return close_list_2018, close_list_2019, months_2018, months_2019, close_array_2018
 
+
+# Question 1
 def draw_graph():
-    close_point_2018, close_point_2019, months_2018, months_2019 = read_close_data()
+    close_point_2018, close_point_2019, months_2018, months_2019 = read_close_data()[:4]
     x_axis_2018 = [datetime.strptime(d, '%Y-%m-%d %H:%M').date() for d in months_2018]
     x_axis_2019 = [datetime.strptime(d, '%Y-%m-%d %H:%M').date() for d in months_2019]
 
@@ -52,22 +56,34 @@ def draw_graph():
     ax.legend()
     plt.show()
 
+
 # Question 2
-def copie_carbone():
-    """Evaluation à partir du modele naif qui considre que le cours monte s'il vient de monter et réciproquement
-    qu'il va descendre s'il vient de descendre pendant la dernière minute"""
-    precision_epsilon = 0.1
-    close_point_2018, close_point_2019, months_2018, months_2019 = read_close_data()
-    close_point_2018 = close_point_2018[1:]
-    close_point_2019 = close_point_2019[1:]
-    months_2018 = months_2018[1:]
-    months_2019 = months_2019[1:]
-    # compare every close point with the previous one until the precision epsilon is reached then we print that it's gonna up or down
-    for i in range(len(close_point_2018)):
-        if abs(close_point_2018[i] - close_point_2018[i - 1]) > precision_epsilon:
-            print(f'Close point {close_point_2018[i]} is gonna up at {months_2018[i]}')
+def native_model():
+    right_predictions: int = 0
+    wrong_predictions: int = 0
+    difference_list: list = []
+    compared_values: list = []
+    data = (read_close_data()[0] + read_close_data()[1])[:-2]
+
+    for i in range(0, len(data) - 1, 5):
+        difference_list.append(data[i + 4] - data[i])
+        compared_values.append(data[i + 4])
+
+    for i in range(0, len(difference_list) - 1):
+        if difference_list[i] >= 0:
+            if compared_values[i + 1] >= compared_values[i]:
+                right_predictions += 1
+            else:
+                wrong_predictions += 1
         else:
-            print(f'Close point {close_point_2018[i]} is gonna down at {months_2018[i]}')
+            if compared_values[i + 1] < compared_values[i]:
+                right_predictions += 1
+            else:
+                wrong_predictions += 1
+
+    prediction_accuracy = (right_predictions / (right_predictions + wrong_predictions)) * 100
+    return prediction_accuracy
+
 
 # Question 3
 def cnn_model():
@@ -80,6 +96,7 @@ def cnn_model():
     model.add(keras.layers.Dense(1))
     model.compile(optimizer='adam', loss='mse')
     return model
+
 
 def train_model():
     close_point_2018, close_point_2019, months_2018, months_2019 = read_close_data()
@@ -98,6 +115,7 @@ def train_model():
     # save the model
     model.save('model.h5')
 
+
 def predict():
     close_point_2018, close_point_2019, months_2018, months_2019 = read_close_data()
     close_point_2018 = close_point_2018[1:]
@@ -114,6 +132,7 @@ def predict():
     # predict the next value
     yhat = model.predict(close_point_2018, verbose=0)
     print(yhat)
+
 
 def lstm_model():
     # LSTM for international airline passengers problem with regression framing
@@ -183,20 +202,12 @@ def lstm_model():
     plt.show()
 
 
-
 if __name__ == '__main__':
     # Question 1
-    # t_1 = time.time()
-    # draw_graph()
-    # t_2 = time.time()
-    # print(f'Question 1 took {t_2 - t_1} seconds')
-    # first = read_close_data()[0][0]
-    # second = read_close_data()[0][4]
-    # close_2018 = abs(first - second)
-    # print(f'Close 2018: {close_2018} : {first} - {second}')
+    draw_graph()
 
     # Question 2
-    # copie_carbone()
+    print(f'Native model accuracy: {native_model():.2f}%')
 
     # Question 3
     # cnn_model()
@@ -204,9 +215,4 @@ if __name__ == '__main__':
     # predict()
 
     # Question 4
-    lstm_model()
-
-
-
-
-
+    # lstm_model()
